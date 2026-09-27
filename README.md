@@ -66,6 +66,13 @@ The program operates entirely via keyboard shortcuts. An on-screen overlay will 
 * `X`: Export your markers to `chapters.xml` AND automatically trigger `mkvmerge` to create `chaptered_output.mkv`.
 * `Q`: Quit the application (Safely prompts you if there are unsaved chapter edits).
 
+## Acknowledgements
+
+This project is a simple wrapper and would not be possible without the incredible, decades-long engineering efforts of the following open-source projects. I heavily rely on their work to make this tool function:
+
+* **[mpv (libmpv)](https://mpv.io/)**: The core video rendering and frame-accurate seeking engine driving the visual interface. ([GitHub](https://github.com/mpv-player/mpv))
+* **[MKVToolNix (mkvmerge)](https://mkvtoolnix.download/)**: The industry-standard Matroska tool utilized securely for all lossless chapter remuxing and MKV data handling. ([GitLab](https://gitlab.com/mbunkus/mkvtoolnix))
+
 ## License
 
 This project is open-sourced under the MIT License. It dynamically links to `libmpv`, which is licensed under the LGPLv2.1. See the `LICENSE` file for details.
