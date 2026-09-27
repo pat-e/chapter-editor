@@ -55,9 +55,9 @@ The program operates entirely via keyboard shortcuts. An on-screen overlay will 
 * `Left Arrow` / `Right Arrow`: Step exactly one frame backward or forward.
   * **+ `Alt`**: Jump 100 frames backward or forward.
   * **+ `Shift`**: Jump 1000 frames backward or forward.
-* `Up Arrow` / `Down Arrow`: Jump backward or forward strictly by 1 second on Keyframes (I-frames).
-  * **+ `Alt`**: Jump ~100 frames backward or forward strictly on Keyframes.
-  * **+ `Shift`**: Jump ~1000 frames backward or forward strictly on Keyframes.
+* `Up Arrow` / `Down Arrow`: Jump backward or forward to the next/previous Keyframe (I-frame).
+  * **+ `Alt`**: Jump ~100 frames backward or forward to the nearest Keyframe.
+  * **+ `Shift`**: Jump ~1000 frames backward or forward to the nearest Keyframe.
 * `Page Up` / `Page Down`: Jump immediately to the next or previous chapter marker you have placed.
 * `C`: Set a Chapter marker at the exact current frame.
 * `D` or `Delete`: Delete the nearest chapter marker (works within a ~0.5-second tolerance of your current position).

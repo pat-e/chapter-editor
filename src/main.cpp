@@ -210,7 +210,7 @@ int main(int argc, char* argv[]) {
                           "[SPACE] : Play / Pause\\n"
                           "[LEFT] / [RIGHT] : Step 1 Frame\\n"
                           " + Alt: 100 Frames  |  + Shift: 1000 Frames\\n"
-                          "[UP] / [DOWN] : Jump 1 sec Keyframes\\n"
+                          "[UP] / [DOWN] : Jump to next/prev Keyframe\\n"
                           " + Alt: 100 Frames (KF) | + Shift: 1000 Frames (KF)\\n"
                           "[C] : Add Chapter\\n"
                           "[D] / [DEL] : Remove Chapter\\n"
@@ -234,8 +234,8 @@ int main(int argc, char* argv[]) {
     std::cout << " - SPACE: Play / Pause\n";
     std::cout << " - LEFT/RIGHT: Step 1 Frame\n";
     std::cout << "    + Alt: Jump 100 Frames  |  + Shift: Jump 1000 Frames\n";
-    std::cout << " - UP/DOWN: Jump 1 sec Keyframes (I-frames)\n";
-    std::cout << "    + Alt: Jump 100 Frames (KF) | + Shift: Jump 1000 Frames (KF)\n";
+    std::cout << " - UP/DOWN: Jump to next/prev Keyframe (I-frame)\n";
+    std::cout << "    + Alt: Jump ~100 Frames (KF) | + Shift: Jump ~1000 Frames (KF)\n";
     std::cout << " - C: Add Chapter  |  D or DEL: Remove Chapter\n";
     std::cout << " - PG-UP/PG-DOWN: Jump to next/prev set chapter\n";
     std::cout << " - S: Save chapters to XML only\n";
