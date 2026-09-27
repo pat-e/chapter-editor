@@ -59,7 +59,7 @@ The program operates entirely via keyboard shortcuts. An on-screen overlay will 
   * **+ `Alt`**: Jump ~100 frames backward or forward to the nearest Keyframe.
   * **+ `Shift`**: Jump ~1000 frames backward or forward to the nearest Keyframe.
 * `Page Up` / `Page Down`: Jump immediately to the next or previous chapter marker you have placed.
-* `C`: Set a Chapter marker at the exact current frame.
+* `C` or `Insert`: Create a Chapter marker at the exact current frame.
 * `D` or `Delete`: Delete the nearest chapter marker (works within a ~0.5-second tolerance of your current position).
 * `S`: Securely export and save your markers to a `chapters.xml` file without remuxing.
 * `L`: Load and merge markers from an existing `chapters.xml` file in the current directory.

@@ -174,6 +174,7 @@ int main(int argc, char* argv[]) {
     conf << "Shift+DOWN script-message jump-frames -1000 keyframes\n";
     conf << "SPACE cycle pause\n";
     conf << "c script-message add-chapter\n";
+    conf << "INS script-message add-chapter\n";
     conf << "d script-message remove-chapter\n";
     conf << "DEL script-message remove-chapter\n";
     conf << "PGUP script-message next-chapter\n";
@@ -212,7 +213,7 @@ int main(int argc, char* argv[]) {
                           " + Alt: 100 Frames  |  + Shift: 1000 Frames\\n"
                           "[UP] / [DOWN] : Jump to next/prev Keyframe\\n"
                           " + Alt: 100 Frames (KF) | + Shift: 1000 Frames (KF)\\n"
-                          "[C] : Add Chapter\\n"
+                          "[C] / [INS] : Create Chapter\\n"
                           "[D] / [DEL] : Remove Chapter\\n"
                           "[PGUP] / [PGDN] : Jump Chapters\\n"
                           "[S] : Save XML only\\n"
@@ -236,7 +237,7 @@ int main(int argc, char* argv[]) {
     std::cout << "    + Alt: Jump 100 Frames  |  + Shift: Jump 1000 Frames\n";
     std::cout << " - UP/DOWN: Jump to next/prev Keyframe (I-frame)\n";
     std::cout << "    + Alt: Jump ~100 Frames (KF) | + Shift: Jump ~1000 Frames (KF)\n";
-    std::cout << " - C: Add Chapter  |  D or DEL: Remove Chapter\n";
+    std::cout << " - C or INS: Create Chapter  |  D or DEL: Remove Chapter\n";
     std::cout << " - PG-UP/PG-DOWN: Jump to next/prev set chapter\n";
     std::cout << " - S: Save chapters to XML only\n";
     std::cout << " - L: Load existing chapters.xml\n";
@@ -345,7 +346,7 @@ int main(int argc, char* argv[]) {
                     syncChaptersToMpv(ctx, chapterMarkers);
                     unsavedChanges = true;
                     confirmQuit = false;
-                    std::cout << "Chapter added at: " << formatTime(time_sec) << " (Total: " << chapterMarkers.size() << ")\n";
+                    std::cout << "Chapter created at: " << formatTime(time_sec) << " (Total: " << chapterMarkers.size() << ")\n";
                 }
                 else if (action == "remove-chapter") {
                     double time_sec = 0.0;
