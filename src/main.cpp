@@ -7,6 +7,7 @@
 #include <cstdlib>
 #include <cmath>
 #include <mpv/client.h>
+#include <filesystem>
 
 // Converts seconds to HH:MM:SS.nnnnnnnnn format required by Matroska XML
 std::string formatTime(double totalSeconds) {
@@ -155,6 +156,36 @@ int main(int argc, char* argv[]) {
         return 1;
     }
     fileCheck.close();
+    
+    // Check for mkvmerge dependency (local bundled first, then system PATH)
+    std::filesystem::path exePath(argv[0]);
+    std::string exeDir = exePath.parent_path().string();
+    if (exeDir.empty()) exeDir = ".";
+    
+    std::string mkvmergeExec = "";
+#ifdef _WIN32
+    std::string localCmd = exeDir + "\\mkvmerge.exe";
+    std::string testLocal = "\"" + localCmd + "\" --version > NUL 2>&1";
+    std::string testGlobal = "mkvmerge --version > NUL 2>&1";
+#else
+    std::string localCmd = exeDir + "/mkvmerge";
+    std::string testLocal = "\"" + localCmd + "\" --version > /dev/null 2>&1";
+    std::string testGlobal = "mkvmerge --version > /dev/null 2>&1";
+#endif
+
+    if (std::system(testLocal.c_str()) == 0) {
+        mkvmergeExec = "\"" + localCmd + "\"";
+    } else if (std::system(testGlobal.c_str()) == 0) {
+        mkvmergeExec = "mkvmerge";
+    } else {
+        std::cerr << "\nERROR: Could not find 'mkvmerge'.\n";
+        std::cerr << "This application requires MKVToolNix to export and remux chapters.\n";
+        std::cerr << "Please either:\n";
+        std::cerr << "  1. Install MKVToolNix and ensure it is in your system PATH variable, OR\n";
+        std::cerr << "  2. Download mkvmerge and place it in the same directory as this executable.\n\n";
+        return 1;
+    }
+
     std::vector<double> chapterMarkers;
 
     // Create a temporary input.conf file to force our custom keybindings into mpv
@@ -421,7 +452,7 @@ int main(int argc, char* argv[]) {
                     exportXML(chapterMarkers, xmlFile);
                     
                     std::string outputFile = "chaptered_output.mkv";
-                    std::string mkvmergeCmd = "mkvmerge -o \"" + outputFile + "\" --chapters \"" + xmlFile + "\" \"" + inputFile + "\"";
+                    std::string mkvmergeCmd = mkvmergeExec + " -o \"" + outputFile + "\" --chapters \"" + xmlFile + "\" \"" + inputFile + "\"";
                     
                     std::cout << "Starting remux process...\n";
                     std::cout << "Executing: " << mkvmergeCmd << "\n";
