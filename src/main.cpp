@@ -227,7 +227,6 @@ int main(int argc, char* argv[]) {
     // Configure mpv for our specific, stripped-down visual needs
     mpv_set_option_string(ctx, "input-conf", confFile.c_str());
     mpv_set_option_string(ctx, "pause", "yes");        // Start paused
-    mpv_set_option_string(ctx, "aid", "no");           // Disable audio track
     mpv_set_option_string(ctx, "sid", "no");           // Disable subtitles
     mpv_set_option_string(ctx, "osd-level", "3");      // Always show OSD status msg
     mpv_set_option_string(ctx, "osd-font-size", "25"); // Better visibility

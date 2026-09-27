@@ -2,13 +2,13 @@
 
 MKV Chapter Editor is an ultra-lightweight, specialized tool designed for one purpose: precisely scrubbing through video files to define, edit, and export Matroska chapter markers without altering the original file or requiring complex video editing software.
 
-Under the hood, it uses the highly robust `libmpv` engine solely for visual rendering and I-frame seeking, intentionally stripping out audio and subtitles to maximize performance. It safely utilizes hardware decoding, allows you to save standard Matroska XML files, and integrates directly with `mkvmerge` to seamlessly output a new chaptered file when you are done.
+Under the hood, it uses the highly robust `libmpv` engine for fast visual rendering, audio playback for seeking cues, and precise I-frame seeking, intentionally stripping out subtitles to maximize performance. It safely utilizes hardware decoding, allows you to save standard Matroska XML files, and integrates directly with `mkvmerge` to seamlessly output a new chaptered file when you are done.
 
 ## Features
 
 * **Smart Auto-Loading:** Automatically reads and imports any existing chapters already present in the source MKV file.
 * **Precision Navigation:** Jump exactly to video Keyframes (I-frames) for standard-compliant chapter generation.
-* **Zero-Overhead Playback:** Audio and subtitles are disabled; resources are entirely dedicated to visual frame precision. Hardware decoding is natively supported.
+* **Zero-Overhead Playback:** Subtitles are disabled to maximize performance while retaining audio for sound cue navigation. Hardware decoding is natively supported.
 * **Visual Chapter Ticks:** The progress bar dynamically draws tick marks for all loaded and newly edited chapters in real-time.
 * **Lossless Remuxing:** Creates a brand-new `.mkv` copy integrating your chapters via MKVToolNix.
 * **Standardized Exports:** Generates official Matroska-compliant `chapters.xml` files that can be directly imported into the MKVToolNix GUI.
