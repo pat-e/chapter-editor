@@ -451,7 +451,7 @@ int main(int argc, char* argv[]) {
                     exportXML(chapterMarkers, xmlFile);
                     
                     std::string outputFile = "chaptered_output.mkv";
-                    std::string mkvmergeCmd = mkvmergeExec + " -o \"" + outputFile + "\" --chapters \"" + xmlFile + "\" \"" + inputFile + "\"";
+                    std::string mkvmergeCmd = mkvmergeExec + " -o \"" + outputFile + "\" --chapters \"" + xmlFile + "\" --no-chapters \"" + inputFile + "\"";
                     
                     std::cout << "Starting remux process...\n";
                     std::cout << "Executing: " << mkvmergeCmd << "\n";
