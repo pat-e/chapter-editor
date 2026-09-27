@@ -71,7 +71,7 @@ The program operates entirely via keyboard shortcuts. An on-screen overlay will 
 This project is a simple wrapper and would not be possible without the incredible, decades-long engineering efforts of the following open-source projects. I heavily rely on their work to make this tool function:
 
 * **[mpv (libmpv)](https://mpv.io/)**: The core video rendering and frame-accurate seeking engine driving the visual interface. ([GitHub](https://github.com/mpv-player/mpv))
-* **[MKVToolNix (mkvmerge)](https://mkvtoolnix.download/)**: The industry-standard Matroska tool utilized securely for all lossless chapter remuxing and MKV data handling. ([GitLab](https://gitlab.com/mbunkus/mkvtoolnix))
+* **[MKVToolNix (mkvmerge)](https://mkvtoolnix.download/)**: The industry-standard Matroska tool utilized securely for all lossless chapter remuxing and MKV data handling. ([Codeberg](https://codeberg.org/mbunkus/mkvtoolnix))
 
 ## License
 
