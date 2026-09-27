@@ -9,6 +9,12 @@
 #include <mpv/client.h>
 #include <filesystem>
 
+
+struct Chapter {
+    double time;
+    std::string title;
+};
+
 // Converts seconds to HH:MM:SS.nnnnnnnnn format required by Matroska XML
 std::string formatTime(double totalSeconds) {
     int hours = static_cast<int>(totalSeconds) / 3600;
@@ -31,15 +37,17 @@ double parseTime(const std::string& timeStr) {
 }
 
 // Deduplicates and sorts the chapter markers
-void sanitizeChapters(std::vector<double>& chapters) {
-    std::sort(chapters.begin(), chapters.end());
+void sanitizeChapters(std::vector<Chapter>& chapters) {
+    std::sort(chapters.begin(), chapters.end(), [](const Chapter& a, const Chapter& b) {
+        return a.time < b.time;
+    });
     // Remove duplicates that are within 0.1 seconds of each other
     auto it = std::unique(chapters.begin(), chapters.end(), 
-        [](double a, double b) { return std::abs(a - b) < 0.1; });
+        [](const Chapter& a, const Chapter& b) { return std::abs(a.time - b.time) < 0.1; });
     chapters.erase(it, chapters.end());
 }
 
-void exportXML(const std::vector<double>& chapters, const std::string& filename) {
+void exportXML(const std::vector<Chapter>& chapters, const std::string& filename) {
     std::ofstream out(filename);
     if (!out) {
         std::cerr << "Failed to create " << filename << std::endl;
@@ -50,10 +58,13 @@ void exportXML(const std::vector<double>& chapters, const std::string& filename)
     out << "<Chapters>\n  <EditionEntry>\n    <EditionFlagDefault>1</EditionFlagDefault>\n    <EditionUID>1</EditionUID>\n";
     
     for (size_t i = 0; i < chapters.size(); ++i) {
+        std::string title = chapters[i].title;
+        if (title.empty()) title = "Chapter " + std::to_string(i + 1);
+        
         out << "    <ChapterAtom>\n";
-        out << "      <ChapterTimeStart>" << formatTime(chapters[i]) << "</ChapterTimeStart>\n";
+        out << "      <ChapterTimeStart>" << formatTime(chapters[i].time) << "</ChapterTimeStart>\n";
         out << "      <ChapterDisplay>\n";
-        out << "        <ChapterString>Chapter " << (i + 1) << "</ChapterString>\n";
+        out << "        <ChapterString>" << title << "</ChapterString>\n";
         out << "        <ChapterLanguage>eng</ChapterLanguage>\n";
         out << "      </ChapterDisplay>\n";
         out << "    </ChapterAtom>\n";
@@ -64,36 +75,53 @@ void exportXML(const std::vector<double>& chapters, const std::string& filename)
     std::cout << "Successfully exported " << chapters.size() << " chapters to " << filename << std::endl;
 }
 
-void loadXML(std::vector<double>& chapters, const std::string& filename) {
+void loadXML(std::vector<Chapter>& chapters, const std::string& filename) {
     std::ifstream in(filename);
     if (!in) {
         std::cout << "Could not open " << filename << " to load chapters.\n";
         return;
     }
     
-    std::string line;
-    std::string tag = "<ChapterTimeStart>";
-    std::string endTag = "</ChapterTimeStart>";
+    std::string fileContent((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
+    size_t atomPos = fileContent.find("<ChapterAtom>");
     int loadedCount = 0;
     
-    while (std::getline(in, line)) {
-        size_t start = line.find(tag);
-        if (start != std::string::npos) {
-            start += tag.length();
-            size_t end = line.find(endTag, start);
-            if (end != std::string::npos) {
-                std::string timeStr = line.substr(start, end - start);
-                chapters.push_back(parseTime(timeStr));
-                loadedCount++;
+    while (atomPos != std::string::npos) {
+        size_t endAtom = fileContent.find("</ChapterAtom>", atomPos);
+        if (endAtom == std::string::npos) break;
+        
+        std::string atom = fileContent.substr(atomPos, endAtom - atomPos);
+        size_t startTimePos = atom.find("<ChapterTimeStart>");
+        size_t startStrPos = atom.find("<ChapterString>");
+        if (startTimePos != std::string::npos) {
+            startTimePos += 18;
+            size_t endTimePos = atom.find("</ChapterTimeStart>", startTimePos);
+            std::string timeStr = atom.substr(startTimePos, endTimePos - startTimePos);
+            double time = parseTime(timeStr);
+            
+            std::string title = "";
+            if (startStrPos != std::string::npos) {
+                startStrPos += 15;
+                size_t endStrPos = atom.find("</ChapterString>", startStrPos);
+                title = atom.substr(startStrPos, endStrPos - startStrPos);
             }
+            
+            // Do not override user titles with "Chapter X" when importing back
+            if (title.find("Chapter ") == 0) title = ""; 
+            
+            chapters.push_back({time, title});
+            loadedCount++;
         }
+        
+        atomPos = fileContent.find("<ChapterAtom>", endAtom);
     }
+    
     sanitizeChapters(chapters);
     std::cout << "Successfully loaded and merged " << loadedCount << " chapters from " << filename << ".\n";
 }
 
 // Sync internal chapter list to mpv so the OSD progress bar accurately renders the chapter ticks
-void syncChaptersToMpv(mpv_handle *ctx, const std::vector<double>& chapters) {
+void syncChaptersToMpv(mpv_handle *ctx, const std::vector<Chapter>& chapters) {
     mpv_node_list array;
     array.num = chapters.size();
     array.keys = NULL;
@@ -108,13 +136,14 @@ void syncChaptersToMpv(mpv_handle *ctx, const std::vector<double>& chapters) {
     std::vector<mpv_node> map_values(chapters.size() * 2);
 
     for (size_t i = 0; i < chapters.size(); ++i) {
-        title_strs[i] = "Chapter " + std::to_string(i + 1);
+        title_strs[i] = chapters[i].title;
+        if (title_strs[i].empty()) title_strs[i] = "Chapter " + std::to_string(i + 1);
         
         title_nodes[i].format = MPV_FORMAT_STRING;
         title_nodes[i].u.string = (char*)title_strs[i].c_str();
         
         time_nodes[i].format = MPV_FORMAT_DOUBLE;
-        time_nodes[i].u.double_ = chapters[i];
+        time_nodes[i].u.double_ = chapters[i].time;
         
         size_t idx = i * 2;
         map_keys[idx] = (char*)"title";
@@ -186,7 +215,7 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
-    std::vector<double> chapterMarkers;
+    std::vector<Chapter> chapterMarkers;
 
     // Create a temporary input.conf file to force our custom keybindings into mpv
     std::string confFile = "chapter_bindings.conf";
@@ -313,10 +342,19 @@ int main(int argc, char* argv[]) {
             if (mpv_get_property(ctx, "chapter-list/count", MPV_FORMAT_DOUBLE, &count) >= 0) {
                 int chapters_found = 0;
                 for (int i = 0; i < static_cast<int>(count); ++i) {
-                    std::string prop = "chapter-list/" + std::to_string(i) + "/time";
+                    std::string timeProp = "chapter-list/" + std::to_string(i) + "/time";
+                    std::string titleProp = "chapter-list/" + std::to_string(i) + "/title";
+                    
                     double time_sec = 0;
-                    if (mpv_get_property(ctx, prop.c_str(), MPV_FORMAT_DOUBLE, &time_sec) >= 0) {
-                        chapterMarkers.push_back(time_sec);
+                    if (mpv_get_property(ctx, timeProp.c_str(), MPV_FORMAT_DOUBLE, &time_sec) >= 0) {
+                        char* titleStr = mpv_get_property_string(ctx, titleProp.c_str());
+                        std::string title = titleStr ? titleStr : "";
+                        if (titleStr) mpv_free(titleStr);
+                        
+                        // Ignore generic mpv names like "Chapter 1" to allow auto-generation
+                        if (title.find("Chapter ") == 0) title = "";
+                        
+                        chapterMarkers.push_back({time_sec, title});
                         chapters_found++;
                     }
                 }
@@ -371,7 +409,7 @@ int main(int argc, char* argv[]) {
                 else if (action == "add-chapter") {
                     double time_sec = 0.0;
                     mpv_get_property(ctx, "time-pos", MPV_FORMAT_DOUBLE, &time_sec);
-                    chapterMarkers.push_back(time_sec);
+                    chapterMarkers.push_back({time_sec, ""});
                     sanitizeChapters(chapterMarkers);
                     syncChaptersToMpv(ctx, chapterMarkers);
                     unsavedChanges = true;
@@ -385,12 +423,12 @@ int main(int argc, char* argv[]) {
                     
                     // Find closest chapter within a 0.5s tolerance to allow easy removal
                     auto it = std::min_element(chapterMarkers.begin(), chapterMarkers.end(),
-                        [time_sec](double a, double b) {
-                            return std::abs(a - time_sec) < std::abs(b - time_sec);
+                        [time_sec](const Chapter& a, const Chapter& b) {
+                            return std::abs(a.time - time_sec) < std::abs(b.time - time_sec);
                         });
                         
-                    if (it != chapterMarkers.end() && std::abs(*it - time_sec) < 0.5) {
-                        std::cout << "Chapter removed at: " << formatTime(*it) << "\n";
+                    if (it != chapterMarkers.end() && std::abs(it->time - time_sec) < 0.5) {
+                        std::cout << "Chapter removed at: " << formatTime(it->time) << "\n";
                         chapterMarkers.erase(it);
                         syncChaptersToMpv(ctx, chapterMarkers);
                         unsavedChanges = true;
@@ -402,9 +440,10 @@ int main(int argc, char* argv[]) {
                 else if (action == "next-chapter") {
                     double time_sec = 0.0;
                     mpv_get_property(ctx, "time-pos", MPV_FORMAT_DOUBLE, &time_sec);
-                    auto it = std::upper_bound(chapterMarkers.begin(), chapterMarkers.end(), time_sec + 0.1);
+                    auto it = std::upper_bound(chapterMarkers.begin(), chapterMarkers.end(), time_sec + 0.1, 
+                        [](double val, const Chapter& c) { return val < c.time; });
                     if (it != chapterMarkers.end()) {
-                        std::string targetTime = std::to_string(*it);
+                        std::string targetTime = std::to_string(it->time);
                         const char* cmdArgs[] = {"seek", targetTime.c_str(), "absolute", "exact", NULL};
                         mpv_command(ctx, cmdArgs);
                     }
@@ -414,8 +453,8 @@ int main(int argc, char* argv[]) {
                     mpv_get_property(ctx, "time-pos", MPV_FORMAT_DOUBLE, &time_sec);
                     // Iterate backwards to find the nearest previous chapter
                     for (auto rit = chapterMarkers.rbegin(); rit != chapterMarkers.rend(); ++rit) {
-                        if (*rit < time_sec - 0.1) {
-                            std::string targetTime = std::to_string(*rit);
+                        if (rit->time < time_sec - 0.1) {
+                            std::string targetTime = std::to_string(rit->time);
                             const char* cmdArgs[] = {"seek", targetTime.c_str(), "absolute", "exact", NULL};
                             mpv_command(ctx, cmdArgs);
                             break;
