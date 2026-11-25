@@ -11,7 +11,9 @@ chapter-editor.exe
 
 # App-generated files
 chapters.xml
+*_chapters.xml
 chaptered_output.mkv
+*_chaptered.mkv
 chapter_bindings.conf
 
 # OS-generated files

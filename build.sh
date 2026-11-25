@@ -1,73 +1,106 @@
 #!/usr/bin/env bash
 
-# MKV Chapter Editor - Automated Build Script
+# MKV Chapter Editor - Automated Build Script (Linux & macOS)
 
-# Exit immediately if a command exits with a non-zero status
+set -euo pipefail
 
-set -e
+SKIP_DEPS=0
+for arg in "$@"; do
+    case "$arg" in
+        --skip-deps)
+            SKIP_DEPS=1
+            ;;
+        -h|--help)
+            echo "Usage: $0 [--skip-deps]"
+            exit 0
+            ;;
+        *)
+            echo "Unknown option: $arg"
+            echo "Usage: $0 [--skip-deps]"
+            exit 1
+            ;;
+    esac
+done
 
 echo ""
+echo "==========================================="
 echo "  MKV Chapter Editor - Build Script"
-echo ""
+echo "==========================================="
 echo ""
 
-# 1. Detect OS and grab necessary dependencies
+deps_satisfied() {
+    command -v cmake >/dev/null 2>&1 &&
+    (command -v c++ >/dev/null 2>&1 || command -v g++ >/dev/null 2>&1 || command -v clang++ >/dev/null 2>&1) &&
+    command -v pkg-config >/dev/null 2>&1 &&
+    pkg-config --exists mpv >/dev/null 2>&1
+}
 
-if [ "$(uname)" == "Darwin" ]; then
-echo "Detected macOS."
-if ! command -v brew &> /dev/null; then
-echo "Error: Homebrew is required to grab dependencies on macOS."
-echo "Please install it from https://brew.sh and run this script again."
-exit 1
-fi
-echo "Grabbing dependencies via Homebrew..."
-brew install cmake mpv mkvtoolnix pkg-config
-elif [ "$(expr substr $(uname -s) 1 5)" == "Linux" ]; then
-echo "Detected Linux."
-# Debian / Ubuntu based
-if command -v apt-get &> /dev/null; then
-echo "Debian/Ubuntu system detected. Grabbing dependencies via APT..."
-sudo apt-get update
-sudo apt-get install -y cmake g++ libmpv-dev mkvtoolnix pkg-config
-# Arch based
-elif command -v pacman &> /dev/null; then
-echo "Arch Linux system detected. Grabbing dependencies via Pacman..."
-sudo pacman -S --needed --noconfirm cmake gcc mpv mkvtoolnix-cli pkgconf
-# Fedora / RedHat based
-elif command -v dnf &> /dev/null; then
-echo "Fedora system detected. Grabbing dependencies via DNF..."
-sudo dnf install -y cmake gcc-c++ mpv-devel mkvtoolnix pkgconf
+if [ "$SKIP_DEPS" -eq 1 ]; then
+    echo "Skipping dependency installation (--skip-deps)."
+elif deps_satisfied; then
+    echo "All build dependencies already satisfied; skipping package installation."
 else
-echo "Warning: Could not auto-detect package manager."
-echo "Please ensure CMake, a C++ compiler, pkg-config, and libmpv-dev are installed."
+    OS_NAME="$(uname -s)"
+    case "$OS_NAME" in
+        Darwin*)
+            echo "Detected macOS."
+            if ! command -v brew >/dev/null 2>&1; then
+                echo "Error: Homebrew is required to install dependencies on macOS."
+                echo "Please install it from https://brew.sh and run this script again."
+                exit 1
+            fi
+            echo "Installing dependencies via Homebrew..."
+            brew install cmake mpv mkvtoolnix pkg-config
+            ;;
+        Linux*)
+            echo "Detected Linux."
+            if command -v apt-get >/dev/null 2>&1; then
+                echo "Debian/Ubuntu system detected. Installing dependencies via APT..."
+                sudo apt-get update
+                sudo apt-get install -y cmake g++ libmpv-dev mkvtoolnix pkg-config
+            elif command -v pacman >/dev/null 2>&1; then
+                echo "Arch Linux system detected. Installing dependencies via Pacman..."
+                sudo pacman -S --needed --noconfirm cmake gcc mpv mkvtoolnix-cli pkgconf
+            elif command -v dnf >/dev/null 2>&1; then
+                echo "Fedora system detected. Installing dependencies via DNF..."
+                echo "Note: 'mpv-devel' requires RPM Fusion Free enabled on Fedora."
+                sudo dnf install -y cmake gcc-c++ mpv-devel mkvtoolnix pkgconf
+            elif command -v zypper >/dev/null 2>&1; then
+                echo "openSUSE system detected. Installing dependencies via Zypper..."
+                sudo zypper install -y cmake gcc-c++ mpv-devel mkvtoolnix pkg-config
+            else
+                echo "Warning: Could not auto-detect package manager."
+                echo "Please ensure cmake, a C++17 compiler, pkg-config, and libmpv dev headers are installed."
+            fi
+            ;;
+        *)
+            echo "Unsupported OS ($OS_NAME) for automated dependency install. Please compile manually."
+            exit 1
+            ;;
+    esac
 fi
-else
-echo "Unsupported OS for automated build script. Please compile manually."
-exit 1
+
+if ! command -v mkvmerge >/dev/null 2>&1; then
+    echo "Warning: 'mkvmerge' not found. Editing and XML export will work, but remuxing requires MKVToolNix."
 fi
 
 echo ""
-echo ""
-echo "  Dependencies met. Compiling project..."
+echo "Configuring and compiling project..."
 echo ""
 
-# 2. Setup the build directory and compile via CMake
-
-mkdir -p build
-cd build
-cmake ..
-cmake --build .
-
-# 3. Move the compiled binary out to the root directory for user convenience
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+cmake --build build --parallel
 
 echo ""
-echo "Finalizing setup..."
-cp chapter-editor ../
-cd ..
+echo "Running unit tests..."
+ctest --test-dir build --output-on-failure
+
+cp build/chapter-editor ./chapter-editor
 
 echo ""
-echo ""
+echo "==========================================="
 echo "  SUCCESS! Build complete."
+echo "==========================================="
 echo ""
 echo "You can now run the application:"
 echo "  ./chapter-editor /path/to/your/video.mkv"
